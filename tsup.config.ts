@@ -1,5 +1,14 @@
 import { defineConfig } from 'tsup';
+import { mkdirSync, existsSync } from 'fs';
+import { join } from 'path';
 import { execSync } from 'child_process';
+
+// Cross-platform way to ensure directory exists
+function ensureDirSync(dir: string) {
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true });
+  }
+}
 
 export default defineConfig({
   entry: ['server/index.ts'],
@@ -34,9 +43,13 @@ export default defineConfig({
     try {
       console.log('Generating type declarations...');
       // Ensure the dist/server directory exists
-      execSync('mkdir -p dist/server', { stdio: 'inherit' });
+      ensureDirSync('dist/server');
+      
       // Generate declarations in the dist/server directory
-      execSync('tsc --project server/tsconfig.json --emitDeclarationOnly', { stdio: 'inherit' });
+      const tscCmd = 'npx tsc --project server/tsconfig.json --emitDeclarationOnly';
+      // @ts-ignore - shell can be boolean in newer Node.js versions
+      execSync(tscCmd, { stdio: 'inherit', shell: true });
+      
       console.log('Type declarations generated successfully');
     } catch (error) {
       console.error('Failed to generate type declarations:', error);
