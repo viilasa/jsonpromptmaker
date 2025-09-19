@@ -3,18 +3,21 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "dev": "vite",
-    "clean": "rimraf dist",
-    "prebuild": "npm run clean && mkdirp dist",
+    "clean": "npx rimraf dist",
+    "prebuild": "npm run clean && npx mkdirp dist",
     "build": "npm run build:client && npm run build:server",
     "build:client": "vite build --mode production",
-    "build:server": "tsup",
+    "build:server": "npx tsup",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
     "server": "node --experimental-specifier-resolution=node --loader tsx server/index.ts",
-    "server:dev": "nodemon --exec node --experimental-specifier-resolution=node --loader tsx server/index.ts",
+    "server:dev": "npx nodemon --exec node --experimental-specifier-resolution=node --loader tsx server/index.ts",
     "start": "node --experimental-specifier-resolution=node --enable-source-maps dist/server/index.js"
   },
   "dependencies": {
@@ -79,8 +82,6 @@
   "devDependencies": {
     "@eslint/js": "^9.32.0",
     "@tailwindcss/typography": "^0.5.16",
-    "rimraf": "^5.0.5",
-    "mkdirp": "^3.0.1",
     "@types/body-parser": "^1.19.6",
     "@types/cors": "^2.8.19",
     "@types/dotenv": "^6.1.1",
@@ -96,8 +97,10 @@
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^15.15.0",
     "lovable-tagger": "^1.1.9",
+    "mkdirp": "^3.0.1",
     "nodemon": "^3.1.10",
     "postcss": "^8.5.6",
+    "rimraf": "^5.0.10",
     "tailwindcss": "^3.4.17",
     "ts-node": "^10.9.2",
     "tsup": "^8.5.0",
