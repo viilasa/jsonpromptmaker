@@ -40,9 +40,18 @@ if (!GEMINI_API_KEY) {
   console.warn('Warning: GEMINI_API_KEY is not set in environment variables. Using default key.');
 }
 
+// Serve static files from Vite build
+const clientDistPath = join(process.cwd(), '../dist/client');
+app.use(express.static(clientDistPath));
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
+});
+
+// Handle SPA routing - serve index.html for all other routes
+app.get('*', (req, res) => {
+  res.sendFile(join(clientDistPath, 'index.html'));
 });
 
 // Generate JSON from prompt
