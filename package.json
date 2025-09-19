@@ -5,7 +5,7 @@
   "type": "commonjs",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && tsc -p server/tsconfig.json",
+    "build": "vite build && tsc -p server/tsconfig.json && node scripts/fix-postcss.js && copy postcss.config.cjs dist\\postcss.config.js",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
