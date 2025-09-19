@@ -1,10 +1,11 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
-import type { PluginOption } from 'vite';
+import type { PluginOption, ConfigEnv, UserConfigExport } from 'vite';
 
 // https://vitejs.dev/config/
-export default defineConfig(async ({ mode }) => {
+// Wrap the config in a function that returns a promise
+const config = async ({ mode }: ConfigEnv) => {
   // Initialize plugins array with react
   const plugins: PluginOption[] = [react()];
   
@@ -33,6 +34,11 @@ export default defineConfig(async ({ mode }) => {
       host: "::",
       port: 8080,
     },
+    css: {
+      postcss: {
+        config: path.resolve(__dirname, 'postcss.config.cjs')
+      }
+    },
     plugins,
     resolve: {
       alias: {
@@ -52,4 +58,7 @@ export default defineConfig(async ({ mode }) => {
       },
     },
   };
-});
+};
+
+// Export the config wrapped in defineConfig
+export default defineConfig(config as unknown as UserConfigExport);
