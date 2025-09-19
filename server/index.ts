@@ -139,16 +139,69 @@ app.post('/api/generate-json', async (req, res) => {
 
 // Serve static files from the Vite build
 const clientDistPath = join(process.cwd(), 'dist/client');
+const indexPath = join(clientDistPath, 'index.html');
+
+// Log paths for debugging
+console.log('Serving static files from:', clientDistPath);
+console.log('Index file path:', indexPath);
+
+// Serve static files
 app.use(express.static(clientDistPath));
 
 // Handle SPA routing - serve index.html for all other routes
-app.get('*', (req, res) => {
-  res.sendFile(join(clientDistPath, 'index.html'));
+app.get('/*', (req, res, next) => {
+  console.log(`Handling route: ${req.path}`);
+  res.sendFile(indexPath, (err) => {
+    if (err) {
+      console.error('Error sending file:', err);
+      res.status(500).send('Error loading the application');
+    }
+  });
+});
+
+// Error handling middleware
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  console.error('Unhandled error:', err);
+  res.status(500).json({ error: 'Internal Server Error' });
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  process.exit(1);
 });
 
 // Start the server
-app.listen(port, () => {
+const server = app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
+});
+
+// Handle server errors
+server.on('error', (error: NodeJS.ErrnoException) => {
+  if (error.syscall !== 'listen') {
+    throw error;
+  }
+
+  const bind = typeof port === 'string' ? 'Pipe ' + port : 'Port ' + port;
+
+  // Handle specific listen errors with friendly messages
+  switch (error.code) {
+    case 'EACCES':
+      console.error(bind + ' requires elevated privileges');
+      process.exit(1);
+      break;
+    case 'EADDRINUSE':
+      console.error(bind + ' is already in use');
+      process.exit(1);
+      break;
+    default:
+      throw error;
+  }
 });
 
 export default app;
