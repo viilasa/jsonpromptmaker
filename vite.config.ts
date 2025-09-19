@@ -24,10 +24,12 @@ const config: UserConfig = {
     },
   },
   build: {
+    outDir: 'dist/client',
     target: 'es2020',
     commonjsOptions: {
       transformMixedEsModules: true,
     },
+    emptyOutDir: true,
   },
   define: {
     'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'production'),
