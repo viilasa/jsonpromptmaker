@@ -1,22 +1,27 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
-import path from "path";
-import type { UserConfig } from 'vite';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
+import postcssConfig from './postcss.config.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // https://vitejs.dev/config/
-const config: UserConfig = {
+export default defineConfig({
   base: '/',  // Ensure base is set to root
   server: {
-    host: "::",
+    host: "127.0.0.1",
     port: 8080,
+    strictPort: true,
   },
   plugins: [react()],
   css: {
-    postcss: require('./postcss.config.js')
+    postcss: postcssConfig
   },
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": resolve(__dirname, "./src"),
     },
   },
   optimizeDeps: {
@@ -36,6 +41,4 @@ const config: UserConfig = {
   define: {
     'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'production'),
   },
-};
-
-export default defineConfig(config);
+});
