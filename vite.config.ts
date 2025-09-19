@@ -1,65 +1,37 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
-import type { PluginOption, ConfigEnv, UserConfigExport } from 'vite';
+import type { UserConfig } from 'vite';
 
 // https://vitejs.dev/config/
-// Wrap the config in a function that returns a promise
-const config = async ({ mode }: ConfigEnv) => {
-  // Initialize plugins array with react
-  const plugins: PluginOption[] = [react()];
-  
-  // Only import and use lovable-tagger in development
-  if (mode === "development") {
-    try {
-      // Use dynamic import for ESM module
-      const { componentTagger } = await import("lovable-tagger");
-      const taggerPlugin = componentTagger() as PluginOption;
-      if (taggerPlugin) {
-        plugins.push(taggerPlugin);
-      }
-    } catch (err) {
-      console.warn("Could not load lovable-tagger:", err);
-    }
-  }
-  
-  // Production-specific configuration
-  const isProduction = mode === 'production';
-  if (isProduction) {
-    process.env.NODE_ENV = 'production';
-  }
-
-  const config = {
-    server: {
-      host: "::",
-      port: 8080,
+const config: UserConfig = {
+  server: {
+    host: "::",
+    port: 8080,
+  },
+  plugins: [react()],
+  css: {
+    postcss: path.resolve(__dirname, 'postcss.config.cjs')
+  },
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
     },
-    plugins,
-    // Always include PostCSS config
-    css: {
-      postcss: {
-        config: path.resolve(__dirname, 'postcss.config.cjs')
-      }
-    },
-    resolve: {
-      alias: {
-        "@": path.resolve(__dirname, "./src"),
-      },
-    },
-    // Add this to handle ESM packages
-    optimizeDeps: {
-      esbuildOptions: {
-        target: 'es2020',
-      },
-    },
-    build: {
+  },
+  optimizeDeps: {
+    esbuildOptions: {
       target: 'es2020',
-      commonjsOptions: {
-        transformMixedEsModules: true,
-      },
     },
-  };
+  },
+  build: {
+    target: 'es2020',
+    commonjsOptions: {
+      transformMixedEsModules: true,
+    },
+  },
+  define: {
+    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'production'),
+  },
 };
 
-// Export the config wrapped in defineConfig
-export default defineConfig(config as unknown as UserConfigExport);
+export default defineConfig(config);
