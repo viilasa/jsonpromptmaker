@@ -4,7 +4,8 @@ import { execSync } from 'child_process';
 export default defineConfig({
   entry: ['server/index.ts'],
   format: ['esm'],
-  outDir: 'dist',
+  outDir: 'dist/server',
+  outExtension: () => ({ js: '.js' }),
   splitting: false,
   sourcemap: true,
   clean: true,
@@ -32,7 +33,10 @@ export default defineConfig({
   async onSuccess() {
     try {
       console.log('Generating type declarations...');
-      execSync('tsc --project server/tsconfig.json --emitDeclarationOnly --outDir dist', { stdio: 'inherit' });
+      // Ensure the dist/server directory exists
+      execSync('mkdir -p dist/server', { stdio: 'inherit' });
+      // Generate declarations in the dist/server directory
+      execSync('tsc --project server/tsconfig.json --emitDeclarationOnly', { stdio: 'inherit' });
       console.log('Type declarations generated successfully');
     } catch (error) {
       console.error('Failed to generate type declarations:', error);
