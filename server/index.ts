@@ -1,9 +1,11 @@
 import express from 'express';
-import bodyParser from 'body-parser';
 import cors from 'cors';
 import * as dotenv from 'dotenv';
-import path from 'path';
-import fetch from 'node-fetch';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import OpenAI from 'openai';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+import bodyParser from 'body-parser';
 import type { Request, Response, NextFunction } from 'express';
 
 // Load environment variables from .env file
@@ -127,11 +129,14 @@ app.post('/api/generate-json', async (req, res) => {
 
 // Serve static files from the React app in production
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../dist')));
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = dirname(__filename);
+  
+  app.use(express.static(join(__dirname, '../dist')));
   
   // Handle React routing, return all requests to React app
   app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../dist', 'index.html'));
+    res.sendFile(join(__dirname, '../dist', 'index.html'));
   });
 }
 
