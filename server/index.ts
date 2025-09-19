@@ -4,8 +4,8 @@ import * as dotenv from 'dotenv';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import OpenAI from 'openai';
 import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
-import { existsSync } from 'fs';
+import path, { dirname, join } from 'node:path';
+import { existsSync, readdirSync, readFileSync } from 'fs';
 import bodyParser from 'body-parser';
 import type { Request, Response, NextFunction } from 'express';
 
@@ -27,11 +27,22 @@ try {
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 3001;
+const port = Number(process.env.PORT) || 3001;
 
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    env: process.env.NODE_ENV || 'development'
+  });
+});
 
 // Gemini API configuration
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyB-t16TK4F8lpuCob0wsUwQAm03jrGUiyY';
@@ -40,11 +51,6 @@ const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/
 if (!GEMINI_API_KEY) {
   console.warn('Warning: GEMINI_API_KEY is not set in environment variables. Using default key.');
 }
-
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok' });
-});
 
 // API routes
 app.post('/api/generate-json', async (req, res) => {
@@ -142,65 +148,103 @@ app.post('/api/generate-json', async (req, res) => {
 const clientDistPath = join(process.cwd(), 'dist/client');
 const indexPath = join(clientDistPath, 'index.html');
 
-// Log paths for debugging
-console.log('Serving static files from:', clientDistPath);
-console.log('Index file path:', indexPath);
+// Log the paths for debugging
+console.log('Current working directory:', process.cwd());
+console.log('Client dist path:', clientDistPath);
+console.log('Index path:', indexPath);
+console.log('Directory exists:', existsSync(clientDistPath));
+console.log('Index.html exists:', existsSync(indexPath));
 
-// Check if the client build exists
-if (!existsSync(clientDistPath)) {
-  console.error('Client build not found at:', clientDistPath);
-  console.error('Please run `npm run build` first');
-  process.exit(1);
+// Log directory contents for debugging
+if (existsSync(clientDistPath)) {
+  console.log('Client dist directory contents:', readdirSync(clientDistPath));
+  if (existsSync(join(clientDistPath, 'assets'))) {
+    console.log('Assets directory contents:', readdirSync(join(clientDistPath, 'assets')));
+  }
 }
 
-if (!existsSync(indexPath)) {
-  console.error('Index file not found at:', indexPath);
-  console.error('Please ensure the client was built correctly');
-  process.exit(1);
-}
-
-// Serve static files explicitly
-const staticMiddleware = express.static(clientDistPath, {
+// Serve static files with proper caching headers
+const staticFileHandler = express.static(clientDistPath, {
   etag: true,
   lastModified: true,
-  maxAge: '1d',
+  maxAge: '1y',
   setHeaders: (res, path) => {
-    if (path.endsWith('.html')) {
+    // Cache static assets for 1 year
+    if (path.endsWith('.js') || path.endsWith('.css') || path.endsWith('.png') || path.endsWith('.jpg') || path.endsWith('.svg')) {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    } else {
+      // No cache for HTML files
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     }
   }
 });
 
-// Apply static middleware
+// Apply the static file handler to all routes except /api
 app.use((req, res, next) => {
-  // Skip API routes
-  if (req.path.startsWith('/api/')) {
-    return next();
+  if (!req.path.startsWith('/api/')) {
+    return staticFileHandler(req, res, next);
   }
-  return staticMiddleware(req, res, next);
+  next();
 });
 
-// Handle all other routes - must be the last route defined
-app.use((req, res, next) => {
-  console.log(`Handling route: ${req.path}`);
-  // Only handle GET requests and only if no other route matched
-  if (req.method === 'GET' && !res.headersSent) {
-    res.sendFile(indexPath, (err: NodeJS.ErrnoException | null) => {
-      if (err) {
-        console.error('Error sending file:', err);
-        if (err.code === 'ENOENT') {
-          console.log('File not found, sending 404');
-          return res.status(404).send('Not Found');
+// Log the contents of index.html for debugging
+if (existsSync(indexPath)) {
+  try {
+    const indexContent = readFileSync(indexPath, 'utf-8');
+    console.log('Index.html content (first 500 chars):', indexContent.substring(0, 500));
+  } catch (err) {
+    console.error('Error reading index.html:', err);
+  }
+}
+
+// Handle API routes
+app.use('/api', (req, res, next) => {
+  next();
+});
+
+// Handle client-side routing - must be the last route
+app.get('*', (req, res) => {
+  // Check if the request is for a file with an extension
+  const hasExtension = path.extname(req.path).length > 1;
+  
+  // If it's a file request with an extension, try to serve it
+  if (hasExtension) {
+    // Use path.posix for consistent path handling across platforms
+    const normalizedPath = req.path.split(path.sep).join(path.posix.sep);
+    const filePath = path.join(clientDistPath, normalizedPath);
+    
+    // Check if the file exists
+    if (existsSync(filePath)) {
+      return res.sendFile(filePath, (err: NodeJS.ErrnoException | null) => {
+        if (err) {
+          console.error(`Error serving file ${req.path}:`, err);
+          // If there's an error serving the file, fall back to index.html
+          serveIndexHtml(res);
         }
-        res.status(500).send('Error loading the application');
-      }
-    });
-  } else {
-    next();
+      });
+    } else {
+      console.log(`File not found: ${req.path}, falling back to index.html`);
+      // If file doesn't exist, serve index.html for SPA routing
+      return serveIndexHtml(res);
+    }
   }
+  
+  // For all other requests, serve index.html
+  serveIndexHtml(res);
 });
 
-// Error handling middleware
+// Helper function to serve index.html
+function serveIndexHtml(res: Response) {
+  console.log('Serving index.html for SPA routing');
+  res.sendFile(indexPath, (err: NodeJS.ErrnoException | null) => {
+    if (err) {
+      console.error('Error serving index.html:', err);
+      res.status(500).send('Error loading the application');
+    }
+  });
+}
+
+// Error handling middleware - must be after all other routes
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   console.error('Unhandled error:', {
     message: err.message,
@@ -210,28 +254,90 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
     headers: req.headers
   });
   
-  if (!res.headersSent) {
-    res.status(500).json({ 
-      error: 'Internal Server Error',
-      message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
+  res.status(500).json({
+    error: 'Internal Server Error',
+    message: process.env.NODE_ENV === 'production' 
+      ? 'An unexpected error occurred' 
+      : err.message,
+    ...(process.env.NODE_ENV === 'development' ? { 
+      stack: err.stack,
+      path: req.path,
+      method: req.method
+    } : {})
+  });
+});
+
+// Handle 404 - Must be after all other routes but before error handling
+app.use((req, res, next) => {
+  console.log(`404 - ${req.method} ${req.path}`);
+  
+  // If it's an API request, return JSON
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({
+      error: 'Not Found',
+      message: `The requested resource ${req.path} was not found`
     });
+  }
+  
+  // Otherwise, serve the SPA's index.html for client-side routing
+  serveIndexHtml(res);
+});
+
+// Start the server with error handling
+const host = '0.0.0.0';
+const server = app.listen(port, host, () => {
+  console.log(`\n=== Server Started ===`);
+  console.log(`Server is running on port ${port}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`Node.js version: ${process.version}`);
+  console.log(`Platform: ${process.platform} ${process.arch}`);
+  console.log(`Process ID: ${process.pid}`);
+  console.log(`Serving static files from: ${clientDistPath}`);
+  console.log(`Health check: http://localhost:${port}/health`);
+  console.log('Press Ctrl+C to stop the server\n');
+  
+  // Log memory usage
+  const used = process.memoryUsage();
+  for (const [key, value] of Object.entries(used)) {
+    console.log(`Memory: ${key} ${Math.round(value / 1024 / 1024 * 100) / 100} MB`);
   }
 });
 
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+// Handle server errors
+export const closeServer = () => {
+  return new Promise<void>((resolve, reject) => {
+    server.close((err) => {
+      if (err) {
+        console.error('Error closing server:', err);
+        reject(err);
+      } else {
+        console.log('Server closed');
+        resolve();
+      }
+    });
+  });
+};
+
+// Handle process termination
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received. Shutting down gracefully...');
+  closeServer().then(() => process.exit(0));
 });
 
-// Handle uncaught exceptions
+process.on('SIGINT', () => {
+  console.log('SIGINT received. Shutting down gracefully...');
+  closeServer().then(() => process.exit(0));
+});
+
+// Handle uncaught exceptions and unhandled rejections
 process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', error);
-  process.exit(1);
+  closeServer().then(() => process.exit(1));
 });
 
-// Start the server
-const server = app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  closeServer().then(() => process.exit(1));
 });
 
 // Handle server errors
