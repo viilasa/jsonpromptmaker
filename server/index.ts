@@ -8,6 +8,20 @@ import { dirname, join } from 'node:path';
 import bodyParser from 'body-parser';
 import type { Request, Response, NextFunction } from 'express';
 
+// Get directory name in a way that works with both ESM and CommonJS
+let __filename: string, __dirname: string;
+try {
+  // @ts-ignore - This works in ESM
+  __filename = fileURLToPath(import.meta.url);
+  __dirname = dirname(__filename);
+} catch (e) {
+  // Fallback for CommonJS
+  // @ts-ignore - This works in CommonJS
+  __filename = __filename || '';
+  // @ts-ignore - This works in CommonJS
+  __dirname = __dirname || '';
+}
+
 // Load environment variables from .env file
 dotenv.config();
 
