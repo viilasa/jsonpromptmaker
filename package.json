@@ -7,12 +7,12 @@
     "dev": "vite",
     "build": "vite build --mode production && npm run build:server",
     "build:dev": "vite build --mode development",
-    "build:server": "tsup",
+    "build:server": "tsup && tsc --project server/tsconfig.json --emitDeclarationOnly",
     "lint": "eslint .",
     "preview": "vite preview",
-    "server": "node --loader tsx server/index.ts",
-    "server:dev": "nodemon --exec node --loader tsx server/index.ts",
-    "start": "node dist/server/index.mjs"
+    "server": "node --experimental-specifier-resolution=node --loader tsx server/index.ts",
+    "server:dev": "nodemon --exec node --experimental-specifier-resolution=node --loader tsx server/index.ts",
+    "start": "node --experimental-specifier-resolution=node dist/server/index.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
