@@ -11,7 +11,7 @@ const config: UserConfig = {
   },
   plugins: [react()],
   css: {
-    postcss: path.resolve(__dirname, 'postcss.config.cjs')
+    postcss: require('./postcss.config.js')
   },
   resolve: {
     alias: {
