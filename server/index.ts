@@ -164,7 +164,7 @@ if (existsSync(clientDistPath)) {
 }
 
 // Serve static files with proper caching headers
-const staticFileHandler = express.static(clientDistPath, {
+app.use(express.static(clientDistPath, {
   etag: true,
   lastModified: true,
   maxAge: '1y',
@@ -177,15 +177,7 @@ const staticFileHandler = express.static(clientDistPath, {
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     }
   }
-});
-
-// Apply the static file handler to all routes except /api
-app.use((req, res, next) => {
-  if (!req.path.startsWith('/api/')) {
-    return staticFileHandler(req, res, next);
-  }
-  next();
-});
+}));
 
 // Log the contents of index.html for debugging
 if (existsSync(indexPath)) {
@@ -203,7 +195,7 @@ app.use('/api', (req, res, next) => {
 });
 
 // Handle client-side routing - must be the last route
-app.get('*', (req, res) => {
+app.get('*', (req, res, next) => {
   // Check if the request is for a file with an extension
   const hasExtension = path.extname(req.path).length > 1;
   
@@ -222,10 +214,6 @@ app.get('*', (req, res) => {
           serveIndexHtml(res);
         }
       });
-    } else {
-      console.log(`File not found: ${req.path}, falling back to index.html`);
-      // If file doesn't exist, serve index.html for SPA routing
-      return serveIndexHtml(res);
     }
   }
   
@@ -236,10 +224,23 @@ app.get('*', (req, res) => {
 // Helper function to serve index.html
 function serveIndexHtml(res: Response) {
   console.log('Serving index.html for SPA routing');
+  
+  // Check if index.html exists
+  if (!existsSync(indexPath)) {
+    console.error('Error: index.html not found at', indexPath);
+    return res.status(500).send('Application not built properly');
+  }
+  
+  // Set content type explicitly
+  res.setHeader('Content-Type', 'text/html');
+  
+  // Send the file
   res.sendFile(indexPath, (err: NodeJS.ErrnoException | null) => {
     if (err) {
       console.error('Error serving index.html:', err);
-      res.status(500).send('Error loading the application');
+      if (!res.headersSent) {
+        res.status(500).send('Error loading the application');
+      }
     }
   });
 }
@@ -279,7 +280,7 @@ app.use((req, res, next) => {
     });
   }
   
-  // Otherwise, serve the SPA's index.html for client-side routing
+  // For all other routes, serve the SPA's index.html for client-side routing
   serveIndexHtml(res);
 });
 
