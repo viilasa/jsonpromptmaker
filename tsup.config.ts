@@ -1,4 +1,5 @@
 import { defineConfig } from 'tsup';
+import { execSync } from 'child_process';
 
 export default defineConfig({
   entry: ['server/index.ts'],
@@ -7,7 +8,7 @@ export default defineConfig({
   splitting: false,
   sourcemap: true,
   clean: true,
-  dts: false, // Disable dts generation for now to avoid type issues
+  dts: false, // We'll generate declarations separately
   bundle: true,
   minify: true,
   target: 'es2020',
@@ -20,12 +21,22 @@ export default defineConfig({
     'openai',
     'body-parser',
     'node:url',
-    'node:path'
+    'node:path',
+    'node:module'
   ],
   esbuildOptions(options) {
     options.banner = {
-      js: 'import { createRequire } from \'module\'; const require = createRequire(import.meta.url);',
+      js: 'import { createRequire } from \'node:module\'; const require = createRequire(import.meta.url);',
     };
   },
-  onSuccess: 'tsc --project server/tsconfig.json --emitDeclarationOnly',
+  async onSuccess() {
+    try {
+      console.log('Generating type declarations...');
+      execSync('tsc --project server/tsconfig.json --emitDeclarationOnly --outDir dist', { stdio: 'inherit' });
+      console.log('Type declarations generated successfully');
+    } catch (error) {
+      console.error('Failed to generate type declarations:', error);
+      process.exit(1);
+    }
+  },
 });
