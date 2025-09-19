@@ -15,7 +15,11 @@
       "*": ["node_modules/*", "src/types/*"]
     },
     "allowSyntheticDefaultImports": true,
-    "types": ["node"]
+    "types": ["node"],
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "composite": true
   },
   "include": ["**/*.ts"],
   "exclude": ["node_modules"]
