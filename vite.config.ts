@@ -21,6 +21,12 @@ export default defineConfig(async ({ mode }) => {
       console.warn("Could not load lovable-tagger:", err);
     }
   }
+  
+  // Production-specific configuration
+  const isProduction = mode === 'production';
+  if (isProduction) {
+    process.env.NODE_ENV = 'production';
+  }
 
   return {
     server: {
