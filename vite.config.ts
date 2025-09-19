@@ -29,17 +29,18 @@ const config = async ({ mode }: ConfigEnv) => {
     process.env.NODE_ENV = 'production';
   }
 
-  return {
+  const config = {
     server: {
       host: "::",
       port: 8080,
     },
+    plugins,
+    // Always include PostCSS config
     css: {
       postcss: {
         config: path.resolve(__dirname, 'postcss.config.cjs')
       }
     },
-    plugins,
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
