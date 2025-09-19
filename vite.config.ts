@@ -4,6 +4,10 @@ import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
 import tailwindcss from 'tailwindcss';
 import autoprefixer from 'autoprefixer';
+import tailwindConfig from './tailwind.config';
+
+// Workaround for TypeScript with Tailwind CSS
+const tailwindPlugin = tailwindcss as unknown as (config: any) => any;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -20,7 +24,7 @@ export default defineConfig({
   css: {
     postcss: {
       plugins: [
-        tailwindcss,
+        tailwindPlugin(tailwindConfig),
         autoprefixer,
       ]
     }
