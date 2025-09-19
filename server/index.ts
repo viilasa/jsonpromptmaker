@@ -40,21 +40,12 @@ if (!GEMINI_API_KEY) {
   console.warn('Warning: GEMINI_API_KEY is not set in environment variables. Using default key.');
 }
 
-// Serve static files from Vite build
-const clientDistPath = join(process.cwd(), '../dist/client');
-app.use(express.static(clientDistPath));
-
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
-// Handle SPA routing - serve index.html for all other routes
-app.get('*', (req, res) => {
-  res.sendFile(join(clientDistPath, 'index.html'));
-});
-
-// Generate JSON from prompt
+// API routes
 app.post('/api/generate-json', async (req, res) => {
   try {
     const { prompt } = req.body;
@@ -140,28 +131,20 @@ app.post('/api/generate-json', async (req, res) => {
     }
 
     res.status(200).json(result);
-  } catch (error: unknown) {
+  } catch (error) {
     console.error('Error generating JSON:', error);
-    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-    res.status(500).json({
-      error: 'Failed to generate JSON',
-      details: errorMessage
-    });
+    res.status(500).json({ error: 'Failed to generate JSON' });
   }
 });
 
-// Serve static files from the React app in production
-if (process.env.NODE_ENV === 'production') {
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = dirname(__filename);
-  
-  app.use(express.static(join(__dirname, '../dist')));
-  
-  // Handle React routing, return all requests to React app
-  app.get('*', (req, res) => {
-    res.sendFile(join(__dirname, '../dist', 'index.html'));
-  });
-}
+// Serve static files from the Vite build
+const clientDistPath = join(process.cwd(), 'dist/client');
+app.use(express.static(clientDistPath));
+
+// Handle SPA routing - serve index.html for all other routes
+app.get('*', (req, res) => {
+  res.sendFile(join(clientDistPath, 'index.html'));
+});
 
 // Start the server
 app.listen(port, () => {
