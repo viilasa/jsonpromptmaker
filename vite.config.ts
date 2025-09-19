@@ -5,6 +5,7 @@ import type { UserConfig } from 'vite';
 
 // https://vitejs.dev/config/
 const config: UserConfig = {
+  base: '/',  // Ensure base is set to root
   server: {
     host: "::",
     port: 8080,
@@ -26,6 +27,7 @@ const config: UserConfig = {
   build: {
     outDir: 'dist/client',
     target: 'es2020',
+    assetsDir: 'assets',
     commonjsOptions: {
       transformMixedEsModules: true,
     },
