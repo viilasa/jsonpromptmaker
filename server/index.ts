@@ -5,6 +5,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import OpenAI from 'openai';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { existsSync } from 'fs';
 import bodyParser from 'body-parser';
 import type { Request, Response, NextFunction } from 'express';
 
@@ -145,15 +146,42 @@ const indexPath = join(clientDistPath, 'index.html');
 console.log('Serving static files from:', clientDistPath);
 console.log('Index file path:', indexPath);
 
-// Serve static files
-app.use(express.static(clientDistPath));
+// Check if the client build exists
+if (!existsSync(clientDistPath)) {
+  console.error('Client build not found at:', clientDistPath);
+  console.error('Please run `npm run build` first');
+  process.exit(1);
+}
+
+if (!existsSync(indexPath)) {
+  console.error('Index file not found at:', indexPath);
+  console.error('Please ensure the client was built correctly');
+  process.exit(1);
+}
+
+// Serve static files with caching disabled in development
+app.use(express.static(clientDistPath, {
+  etag: true,
+  lastModified: true,
+  maxAge: '1d',
+  setHeaders: (res, path) => {
+    if (path.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    }
+  }
+}));
 
 // Handle SPA routing - serve index.html for all other routes
-app.get('/*', (req, res, next) => {
+app.get('*', (req, res) => {
   console.log(`Handling route: ${req.path}`);
-  res.sendFile(indexPath, (err) => {
+  res.sendFile(indexPath, (err: NodeJS.ErrnoException | null) => {
     if (err) {
       console.error('Error sending file:', err);
+      // If the file doesn't exist, try to serve the main index.html
+      if (err.code === 'ENOENT') {
+        console.log('File not found, serving index.html');
+        return res.sendFile(join(clientDistPath, 'index.html'));
+      }
       res.status(500).send('Error loading the application');
     }
   });
