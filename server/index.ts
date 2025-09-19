@@ -195,7 +195,7 @@ app.use('/api', (req, res, next) => {
 });
 
 // Handle client-side routing - must be the last route
-app.get('*', (req, res, next) => {
+app.get('/*', (req, res, next) => {
   // Check if the request is for a file with an extension
   const hasExtension = path.extname(req.path).length > 1;
   
