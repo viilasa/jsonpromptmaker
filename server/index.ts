@@ -159,8 +159,8 @@ if (!existsSync(indexPath)) {
   process.exit(1);
 }
 
-// Serve static files with caching disabled in development
-app.use(express.static(clientDistPath, {
+// Serve static files explicitly
+const staticMiddleware = express.static(clientDistPath, {
   etag: true,
   lastModified: true,
   maxAge: '1d',
@@ -169,28 +169,53 @@ app.use(express.static(clientDistPath, {
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     }
   }
-}));
+});
 
-// Handle SPA routing - serve index.html for all other routes
-app.get('*', (req, res) => {
+// Apply static middleware
+app.use((req, res, next) => {
+  // Skip API routes
+  if (req.path.startsWith('/api/')) {
+    return next();
+  }
+  return staticMiddleware(req, res, next);
+});
+
+// Handle all other routes - must be the last route defined
+app.use((req, res, next) => {
   console.log(`Handling route: ${req.path}`);
-  res.sendFile(indexPath, (err: NodeJS.ErrnoException | null) => {
-    if (err) {
-      console.error('Error sending file:', err);
-      // If the file doesn't exist, try to serve the main index.html
-      if (err.code === 'ENOENT') {
-        console.log('File not found, serving index.html');
-        return res.sendFile(join(clientDistPath, 'index.html'));
+  // Only handle GET requests and only if no other route matched
+  if (req.method === 'GET' && !res.headersSent) {
+    res.sendFile(indexPath, (err: NodeJS.ErrnoException | null) => {
+      if (err) {
+        console.error('Error sending file:', err);
+        if (err.code === 'ENOENT') {
+          console.log('File not found, sending 404');
+          return res.status(404).send('Not Found');
+        }
+        res.status(500).send('Error loading the application');
       }
-      res.status(500).send('Error loading the application');
-    }
-  });
+    });
+  } else {
+    next();
+  }
 });
 
 // Error handling middleware
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-  console.error('Unhandled error:', err);
-  res.status(500).json({ error: 'Internal Server Error' });
+  console.error('Unhandled error:', {
+    message: err.message,
+    stack: err.stack,
+    path: req.path,
+    method: req.method,
+    headers: req.headers
+  });
+  
+  if (!res.headersSent) {
+    res.status(500).json({ 
+      error: 'Internal Server Error',
+      message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
+    });
+  }
 });
 
 // Handle unhandled promise rejections
