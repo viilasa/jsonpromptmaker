@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        pre {
+            background: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        button {
+            padding: 10px 15px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Image Prompt Generation</h1>
+    <button id="testButton">Test API</button>
+    <div id="result">
+        <h3>Response:</h3>
+        <pre id="response">Click the button to test the API</pre>
+    </div>
+
+    <script>
+        document.getElementById('testButton').addEventListener('click', async () => {
+            const responseElement = document.getElementById('response');
+            responseElement.textContent = 'Sending request...';
+            
+            try {
+                const response = await fetch('http://localhost:3001/api/generate-image-prompt', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        config: {
+                            subject: "man dancing mad",
+                            style: "realistic",
+                            lighting: "dramatic",
+                            composition: ["rule of thirds", "centered"],
+                            quality: 8,
+                            aspectRatio: "1:1",
+                            negativePrompt: "blurry, low quality, distorted, extra limbs, bad anatomy",
+                            steps: 30,
+                            cfgScale: 7.5,
+                            model: "Stable Diffusion XL",
+                            sampler: "k_euler_ancestral"
+                        }
+                    })
+                });
+
+                const data = await response.json();
+                responseElement.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                responseElement.textContent = `Error: ${error.message}\n${error.stack || ''}`;
+            }
+        });
+    </script>
+</body>
+</html>

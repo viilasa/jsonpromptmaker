@@ -47,6 +47,7 @@ export default defineConfig({
       
       // Generate declarations in the dist/server directory
       const tscCmd = 'npx tsc --project server/tsconfig.json --emitDeclarationOnly';
+      // @ts-ignore - shell can be boolean in newer Node.js versions
       execSync(tscCmd, { stdio: 'inherit', shell: true });
       
       console.log('Type declarations generated successfully');
