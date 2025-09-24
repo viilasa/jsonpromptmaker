@@ -1,10 +1,11 @@
 import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Copy, RotateCcw, Sparkles } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Copy, RotateCcw, Sparkles, Image as ImageIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Link } from "react-router-dom";
 
 interface JSONOutput {
   prompt: string;
@@ -124,7 +125,7 @@ export const JSONConverter = () => {
   return (
     <div className="min-h-screen bg-gradient-background flex items-center justify-center p-4">
       <div className="w-full max-w-6xl space-y-6">
-        {/* Header */}
+        {/* Main Content */}
         <div className="text-center space-y-2">
           <h1 className="text-4xl font-bold gradient-text flex items-center justify-center gap-2">
             <Sparkles className="w-8 h-8" />
@@ -133,6 +134,14 @@ export const JSONConverter = () => {
           <p className="text-muted-foreground text-lg">
             Convert natural language prompts into structured JSON format
           </p>
+          <div className="flex justify-center gap-4 mt-4">
+            <Link to="/image-prompt">
+              <Button variant="outline" className="gap-2">
+                <ImageIcon className="h-4 w-4" />
+                Try Image Prompt Builder
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Main Content */}
@@ -159,7 +168,7 @@ export const JSONConverter = () => {
                 disabled={isConverting}
               />
               <div className="flex gap-2">
-                <Button 
+                <Button
                   onClick={handleConvert}
                   disabled={!prompt.trim() || isConverting}
                   className="flex-1"

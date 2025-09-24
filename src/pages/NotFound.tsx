@@ -1,5 +1,8 @@
-import { useLocation } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Home, ArrowLeft } from "lucide-react";
 
 const NotFound = () => {
   const location = useLocation();
@@ -9,14 +12,34 @@ const NotFound = () => {
   }, [location.pathname]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">404</h1>
-        <p className="mb-4 text-xl text-gray-600">Oops! Page not found</p>
-        <a href="/" className="text-blue-500 underline hover:text-blue-700">
-          Return to Home
-        </a>
-      </div>
+    <div className="min-h-screen bg-gradient-background flex items-center justify-center p-4">
+      <Card className="w-full max-w-md elegant-shadow">
+        <CardHeader className="text-center">
+          <CardTitle className="text-6xl font-bold text-primary">404</CardTitle>
+        </CardHeader>
+        <CardContent className="text-center space-y-4">
+          <h2 className="text-2xl font-semibold">Page Not Found</h2>
+          <p className="text-muted-foreground">
+            The page you're looking for doesn't exist or has been moved.
+          </p>
+          <div className="flex flex-col gap-2 pt-4">
+            <Link to="/">
+              <Button className="w-full gap-2">
+                <Home className="w-4 h-4" />
+                Go to Home
+              </Button>
+            </Link>
+            <Button
+              variant="outline"
+              onClick={() => window.history.back()}
+              className="w-full gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Go Back
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
